@@ -1,7 +1,6 @@
 import Promise from 'bluebird';
 import mongoose from 'mongoose';
 import httpStatus from 'http-status';
-import cache from 'memory-cache';
 import APIError from '../helpers/APIError';
 
 /**
@@ -29,7 +28,7 @@ const RankSchema = new mongoose.Schema({
   date: {
     type: Date
   },
-  playerId: {
+  player: {
     type: String
   },
   value: {
@@ -61,12 +60,13 @@ RankSchema.statics = {
    * @param {ObjectId} id - The objectId of rank.
    * @returns {Promise<Rank[], APIError>}
    */
-  getRanks({ playerId, limit = 10000 }) {
-    return this.find({ playerId })
+  getRanks({ playerId, limit = 10000, format = 'ppr' }) {
+    return this.find({ playerId, format })
       .sort({ date: -1 })
       .limit(+limit)
       .exec()
       .then((Ranks) => {
+        console.log(Ranks);
         if (Ranks) {
           return Ranks;
         }

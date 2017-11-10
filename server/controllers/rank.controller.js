@@ -5,7 +5,7 @@ import Rank from '../models/rank.model';
  * @returns {Rank}
  */
 function getRanks(req, res, next) {
-  Rank.getRanks({ playerId: req.query.playerId, limit: req.query.limit })
+  Rank.getRanks({ playerId: req.query.playerId, limit: req.query.limit, format: req.query.format })
     .then(ranks => res.json(ranks))
     .catch(e => next(e));
 }

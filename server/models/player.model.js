@@ -135,38 +135,22 @@ PlayerSchema.statics = {
     return Promise.reject(new APIError('Must provide playerId!', httpStatus.NOT_FOUND));
   },
 
-  index({ position = null }) {
-    // return this.find().exec();
-    if (position) {
-      return new Promise((resolve, reject) => {
-        let players = cache.get('players');
-        if (players) {
-          console.log('from cache');
-          resolve(players.filter(x => x.position === position));
-        }
-        this.find()
-          .exec()
-          .then((p) => {
-            players = p;
-            cache.put('players', p);
-            console.log('from db');
-            resolve(players);
-          });
-      });
-    }
-    return new Promise((resolve, reject) => {
+  index({ activeOnly = false }) {
+    return new Promise((resolve) => {
       let players = cache.get('players');
       if (players) {
         console.log('from cache');
-        resolve(players);
+        if (!activeOnly) return resolve(players);
+        return resolve(players.filter(x => x.status !== 'inactive'));
       }
-      this.find()
+      return this.find()
         .exec()
         .then((p) => {
           players = p;
           cache.put('players', p);
           console.log('from db');
-          resolve(players);
+          if (!activeOnly) return resolve(players);
+          return resolve(players.filter(x => x.status !== 'inactive'));
         });
     });
   },
