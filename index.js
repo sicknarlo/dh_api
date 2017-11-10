@@ -1,11 +1,13 @@
 import mongoose from 'mongoose';
 import util from 'util';
+import cron from 'cron';
 
 // config should be imported before importing any other file
 import config from './config/config';
 import app from './config/express';
 
 import updateRanks from './server/cron/updateRanks';
+import updatePlayers from './server/cron/updatePlayers';
 
 const debug = require('debug')('express-mongoose-es6-rest-api:index');
 
@@ -15,7 +17,16 @@ Promise = require('bluebird'); // eslint-disable-line no-global-assign
 // plugin bluebird promise in mongoose
 mongoose.Promise = Promise;
 
-updateRanks();
+// updateRanks();
+// updatePlayers();
+
+const playerCron = new cron.CronJob({
+  // cronTime: '00 30 2 * * *',
+  cronTime: '00 30 1 * * 2',
+  onTick: updatePlayers(),
+  start: true,
+  timeZone: 'America/Los_Angeles',
+});
 
 // connect to mongo db
 const mongoUri = config.mongo.host;
