@@ -28,7 +28,7 @@ const RankSchema = new mongoose.Schema({
   date: {
     type: Date
   },
-  player: {
+  playerId: {
     type: String
   },
   value: {

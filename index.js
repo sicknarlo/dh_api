@@ -20,13 +20,13 @@ mongoose.Promise = Promise;
 // updateRanks();
 // updatePlayers();
 
-const playerCron = new cron.CronJob({
-  // cronTime: '00 30 2 * * *',
-  cronTime: '00 30 1 * * 2',
-  onTick: updatePlayers(),
-  start: true,
-  timeZone: 'America/Los_Angeles',
-});
+// const playerCron = new cron.CronJob({
+//   // cronTime: '00 30 2 * * *',
+//   cronTime: '00 30 1 * * 2',
+//   onTick: updatePlayers(),
+//   start: true,
+//   timeZone: 'America/Los_Angeles',
+// });
 
 // connect to mongo db
 const mongoUri = config.mongo.host;

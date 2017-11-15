@@ -111,9 +111,9 @@ function updatePlayers() {
               updatedAt: new Date(),
               createdAt: new Date()
             });
-            newPlayer.save(function (err, np) {
+            newPlayer.save(function (err) {
               if (err) return console.error(err);
-            }).exec();
+            });
           }
         });
       });
