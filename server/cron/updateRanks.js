@@ -5,7 +5,6 @@ import { aav_raw } from './aav';
 require('es6-promise').polyfill();
 require('isomorphic-fetch');
 
-
 const superScore = {
   QB: ecr => parseFloat((0.0162 * Math.pow(ecr, 1.66) - 0.69).toFixed(2)),
   RB: ecr => parseFloat((1.6912 * Math.pow(ecr, 0.9441) - 0.69).toFixed(2)),
@@ -26,7 +25,7 @@ function cleanName(name) {
 function standardDeviation(values) {
   const avg = average(values);
 
-  const squareDiffs = values.map(function(value) {
+  const squareDiffs = values.map((value) => {
     const diff = value - avg;
     const sqrDiff = diff * diff;
     return sqrDiff;
@@ -39,9 +38,7 @@ function standardDeviation(values) {
 }
 
 function average(data) {
-  const sum = data.reduce(function(s, value) {
-    return s + value;
-  }, 0);
+  const sum = data.reduce((s, value) => s + value, 0);
 
   const avg = sum / data.length;
   return avg;
@@ -50,25 +47,30 @@ function average(data) {
 const aav = aav_raw.map(x => parseFloat(x.averageValue));
 
 function updateRanks() {
-  fetch('http://partners.fantasypros.com/api/v1/consensus-rankings.php?experts=show&sport=NFL&year=2017&week=0&id=1015&scoring=PPR&position=ALL&type=STK')
-    .then(response => response.json()).then((json) => {
-      const players = json.players.filter(y => positions.indexOf(y.player_position_id) > -1).map((x, i) => {
-        const name = cleanName(x.player_name);
-        const best = parseInt(x.rank_min);
-        const worst = parseInt(x.rank_max);
-        const rank = parseFloat(x.rank_ave);
-        const stdev = parseFloat(x.rank_std);
-        const pos = x.player_position_id;
-        return {
-          name,
-          best,
-          worst,
-          rank,
-          stdev,
-          pos,
-          super: superScore[pos](rank),
-        };
-      });
+  fetch(
+    'http://partners.fantasypros.com/api/v1/consensus-rankings.php?experts=show&sport=NFL&year=2017&week=0&id=1015&scoring=PPR&position=ALL&type=STK'
+  )
+    .then(response => response.json())
+    .then((json) => {
+      const players = json.players
+        .filter(y => positions.indexOf(y.player_position_id) > -1)
+        .map((x, i) => {
+          const name = cleanName(x.player_name);
+          const best = parseInt(x.rank_min);
+          const worst = parseInt(x.rank_max);
+          const rank = parseFloat(x.rank_ave);
+          const stdev = parseFloat(x.rank_std);
+          const pos = x.player_position_id;
+          return {
+            name,
+            best,
+            worst,
+            rank,
+            stdev,
+            pos,
+            super: superScore[pos](rank),
+          };
+        });
       const playersFinal = players.map((x) => {
         const obj = x;
         const diff = obj.super - obj.rank;
@@ -79,7 +81,9 @@ function updateRanks() {
       });
       Player.index({}).then((result) => {
         playersFinal.forEach((player) => {
-          const dbPlayer = result.find(x => x.name && x.name.toLowerCase() === player.name.toLowerCase());
+          const dbPlayer = result.find(
+            x => x.name && x.name.toLowerCase() === player.name.toLowerCase()
+          );
           if (dbPlayer) player.player = dbPlayer;
           if (dbPlayer && dbPlayer.status === 'R') player.isRookie = true;
         });
@@ -87,7 +91,9 @@ function updateRanks() {
         let last = null;
         for (let y = 0; y < playersFinal.length; y++) {
           playersFinal[y].aav = parseFloat((aav[y] / 1000).toFixed(5));
-          playersFinal[y].value = parseInt(10500 * Math.pow(2.71828182845904, -0.0234 * playersFinal[y].rank));
+          playersFinal[y].value = parseInt(
+            10500 * Math.pow(2.71828182845904, -0.0234 * playersFinal[y].rank)
+          );
           // last = playersFinal[y];
         }
         playersFinal.sort((a, b) => a.super - b.super);
@@ -98,12 +104,12 @@ function updateRanks() {
             rank++;
           }
           playersFinal[y].aav_2qb = parseFloat((aav[y] / 1000).toFixed(5));
-          playersFinal[y].value_2qb = parseInt(10500 * Math.pow(2.71828182845904, -0.0234 * rank));
+          playersFinal[y].value_2qb = parseInt(
+            10500 * Math.pow(2.71828182845904, -0.0234 * playersFinal[y].super)
+          );
           last = playersFinal[y];
         }
-        const rookies = playersFinal
-          .filter(x => x.isRookie)
-          .sort((a, b) => a.rank - b.rank);
+        const rookies = playersFinal.filter(x => x.isRookie).sort((a, b) => a.rank - b.rank);
 
         rookies.forEach((x, i) => {
           const p = playersFinal.findIndex(y => x.name === y.name);
@@ -112,9 +118,7 @@ function updateRanks() {
             //   console.log(playersFinal[p]);
           }
         });
-        const rookies_2qb = playersFinal
-          .filter(x => x.isRookie)
-          .sort((a, b) => a.super - b.super);
+        const rookies_2qb = playersFinal.filter(x => x.isRookie).sort((a, b) => a.super - b.super);
 
         rookies_2qb.forEach((x, i) => {
           const p = playersFinal.findIndex(y => x.name === y.name);
@@ -127,24 +131,12 @@ function updateRanks() {
         const round3 = [];
         const round4 = [];
         let lastDefined = null;
-        for (var y = 0; y < 48; y++) {
+        for (let y = 0; y < 48; y++) {
           if (rookies[y] && rookies_2qb[y]) lastDefined = y;
-          if (y < 12) round1.push([
-              rookies[lastDefined],
-              rookies_2qb[lastDefined],
-            ]);
-          if (y > 11 && y < 24) round2.push([
-              rookies[lastDefined],
-              rookies_2qb[lastDefined],
-            ]);
-          if (y > 23 && y < 36) round3.push([
-              rookies[lastDefined],
-              rookies_2qb[lastDefined],
-            ]);
-          if (y > 35 && y < 48) round4.push([
-              rookies[lastDefined],
-              rookies_2qb[lastDefined],
-            ]);
+          if (y < 12) round1.push([rookies[lastDefined], rookies_2qb[lastDefined]]);
+          if (y > 11 && y < 24) round2.push([rookies[lastDefined], rookies_2qb[lastDefined]]);
+          if (y > 23 && y < 36) round3.push([rookies[lastDefined], rookies_2qb[lastDefined]]);
+          if (y > 35 && y < 48) round4.push([rookies[lastDefined], rookies_2qb[lastDefined]]);
         }
 
         const year1 = [];
@@ -1129,23 +1121,15 @@ function updateRanks() {
                 rank: {
                   time: new Date(),
                   adp: parseFloat((pick.rank.adp * 1.2).toFixed(1)),
-                  adp_2qb: parseFloat(
-                    (pick.rank.adp_2qb * 1.2).toFixed(1)
-                  ),
+                  adp_2qb: parseFloat((pick.rank.adp_2qb * 1.2).toFixed(1)),
                   low: parseFloat((pick.rank.low * 1.2).toFixed(1)),
-                  low_2qb: parseFloat(
-                    (pick.rank.low_2qb * 1.2).toFixed(1)
-                  ),
+                  low_2qb: parseFloat((pick.rank.low_2qb * 1.2).toFixed(1)),
                   high: parseFloat((pick.rank.high * 1.2).toFixed(1)),
-                  high_2qb: parseFloat(
-                    (pick.rank.high_2qb * 1.2).toFixed(1)
-                  ),
+                  high_2qb: parseFloat((pick.rank.high_2qb * 1.2).toFixed(1)),
                   stdev: pick.rank.stdev,
                   stdev_2qb: pick.rank.stdev_2qb,
                   value: parseInt((pick.rank.value * 0.8).toFixed(0)),
-                  value_2qb: parseInt(
-                    (pick.rank.value_2qb * 0.8).toFixed(0)
-                  ),
+                  value_2qb: parseInt((pick.rank.value_2qb * 0.8).toFixed(0)),
                 },
               });
             });
@@ -1161,27 +1145,15 @@ function updateRanks() {
             rank: {
               time: new Date(),
               adp: parseFloat((pickRanks[x].rank.adp * 1.2).toFixed(1)),
-              adp_2qb: parseFloat(
-                (pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)
-              ),
+              adp_2qb: parseFloat((pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)),
               low: parseFloat((pickRanks[x].rank.low * 1.2).toFixed(1)),
-              low_2qb: parseFloat(
-                (pickRanks[x].rank.low_2qb * 1.2).toFixed(1)
-              ),
-              high: parseFloat(
-                (pickRanks[x].rank.high * 1.2).toFixed(1)
-              ),
-              high_2qb: parseFloat(
-                (pickRanks[x].rank.high_2qb * 1.2).toFixed(1)
-              ),
+              low_2qb: parseFloat((pickRanks[x].rank.low_2qb * 1.2).toFixed(1)),
+              high: parseFloat((pickRanks[x].rank.high * 1.2).toFixed(1)),
+              high_2qb: parseFloat((pickRanks[x].rank.high_2qb * 1.2).toFixed(1)),
               stdev: pickRanks[x].rank.stdev,
               stdev_2qb: pickRanks[x].rank.stdev_2qb,
-              value: parseInt(
-                (pickRanks[x].rank.value * 0.8).toFixed(0)
-              ),
-              value_2qb: parseInt(
-                (pickRanks[x].rank.value_2qb * 0.8).toFixed(0)
-              ),
+              value: parseInt((pickRanks[x].rank.value * 0.8).toFixed(0)),
+              value_2qb: parseInt((pickRanks[x].rank.value_2qb * 0.8).toFixed(0)),
             },
           });
           x = i === 0 ? 52 + inc : foo + (i - 1) * 16;
@@ -1193,27 +1165,15 @@ function updateRanks() {
             rank: {
               time: new Date(),
               adp: parseFloat((pickRanks[x].rank.adp * 1.2).toFixed(1)),
-              adp_2qb: parseFloat(
-                (pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)
-              ),
+              adp_2qb: parseFloat((pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)),
               low: parseFloat((pickRanks[x].rank.low * 1.2).toFixed(1)),
-              low_2qb: parseFloat(
-                (pickRanks[x].rank.low_2qb * 1.2).toFixed(1)
-              ),
-              high: parseFloat(
-                (pickRanks[x].rank.high * 1.2).toFixed(1)
-              ),
-              high_2qb: parseFloat(
-                (pickRanks[x].rank.high_2qb * 1.2).toFixed(1)
-              ),
+              low_2qb: parseFloat((pickRanks[x].rank.low_2qb * 1.2).toFixed(1)),
+              high: parseFloat((pickRanks[x].rank.high * 1.2).toFixed(1)),
+              high_2qb: parseFloat((pickRanks[x].rank.high_2qb * 1.2).toFixed(1)),
               stdev: pickRanks[x].rank.stdev,
               stdev_2qb: pickRanks[x].rank.stdev_2qb,
-              value: parseInt(
-                (pickRanks[x].rank.value * 0.8).toFixed(0)
-              ),
-              value_2qb: parseInt(
-                (pickRanks[x].rank.value_2qb * 0.8).toFixed(0)
-              ),
+              value: parseInt((pickRanks[x].rank.value * 0.8).toFixed(0)),
+              value_2qb: parseInt((pickRanks[x].rank.value_2qb * 0.8).toFixed(0)),
             },
           });
           x = i === 0 ? 56 + inc : foo + (i - 1) * 16;
@@ -1225,27 +1185,15 @@ function updateRanks() {
             rank: {
               time: new Date(),
               adp: parseFloat((pickRanks[x].rank.adp * 1.2).toFixed(1)),
-              adp_2qb: parseFloat(
-                (pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)
-              ),
+              adp_2qb: parseFloat((pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)),
               low: parseFloat((pickRanks[x].rank.low * 1.2).toFixed(1)),
-              low_2qb: parseFloat(
-                (pickRanks[x].rank.low_2qb * 1.2).toFixed(1)
-              ),
-              high: parseFloat(
-                (pickRanks[x].rank.high * 1.2).toFixed(1)
-              ),
-              high_2qb: parseFloat(
-                (pickRanks[x].rank.high_2qb * 1.2).toFixed(1)
-              ),
+              low_2qb: parseFloat((pickRanks[x].rank.low_2qb * 1.2).toFixed(1)),
+              high: parseFloat((pickRanks[x].rank.high * 1.2).toFixed(1)),
+              high_2qb: parseFloat((pickRanks[x].rank.high_2qb * 1.2).toFixed(1)),
               stdev: pickRanks[x].rank.stdev,
               stdev_2qb: pickRanks[x].rank.stdev_2qb,
-              value: parseInt(
-                (pickRanks[x].rank.value * 0.8).toFixed(0)
-              ),
-              value_2qb: parseInt(
-                (pickRanks[x].rank.value_2qb * 0.8).toFixed(0)
-              ),
+              value: parseInt((pickRanks[x].rank.value * 0.8).toFixed(0)),
+              value_2qb: parseInt((pickRanks[x].rank.value_2qb * 0.8).toFixed(0)),
             },
           });
           x = i === 0 ? 60 + inc : foo + (i - 1) * 16;
@@ -1257,27 +1205,15 @@ function updateRanks() {
             rank: {
               time: new Date(),
               adp: parseFloat((pickRanks[x].rank.adp * 1.2).toFixed(1)),
-              adp_2qb: parseFloat(
-                (pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)
-              ),
+              adp_2qb: parseFloat((pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)),
               low: parseFloat((pickRanks[x].rank.low * 1.2).toFixed(1)),
-              low_2qb: parseFloat(
-                (pickRanks[x].rank.low_2qb * 1.2).toFixed(1)
-              ),
-              high: parseFloat(
-                (pickRanks[x].rank.high * 1.2).toFixed(1)
-              ),
-              high_2qb: parseFloat(
-                (pickRanks[x].rank.high_2qb * 1.2).toFixed(1)
-              ),
+              low_2qb: parseFloat((pickRanks[x].rank.low_2qb * 1.2).toFixed(1)),
+              high: parseFloat((pickRanks[x].rank.high * 1.2).toFixed(1)),
+              high_2qb: parseFloat((pickRanks[x].rank.high_2qb * 1.2).toFixed(1)),
               stdev: pickRanks[x].rank.stdev,
               stdev_2qb: pickRanks[x].rank.stdev_2qb,
-              value: parseInt(
-                (pickRanks[x].rank.value * 0.8).toFixed(0)
-              ),
-              value_2qb: parseInt(
-                (pickRanks[x].rank.value_2qb * 0.8).toFixed(0)
-              ),
+              value: parseInt((pickRanks[x].rank.value * 0.8).toFixed(0)),
+              value_2qb: parseInt((pickRanks[x].rank.value_2qb * 0.8).toFixed(0)),
             },
           });
           inc++;
@@ -1290,27 +1226,15 @@ function updateRanks() {
             rank: {
               time: new Date(),
               adp: parseFloat((pickRanks[x].rank.adp * 1.2).toFixed(1)),
-              adp_2qb: parseFloat(
-                (pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)
-              ),
+              adp_2qb: parseFloat((pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)),
               low: parseFloat((pickRanks[x].rank.low * 1.2).toFixed(1)),
-              low_2qb: parseFloat(
-                (pickRanks[x].rank.low_2qb * 1.2).toFixed(1)
-              ),
-              high: parseFloat(
-                (pickRanks[x].rank.high * 1.2).toFixed(1)
-              ),
-              high_2qb: parseFloat(
-                (pickRanks[x].rank.high_2qb * 1.2).toFixed(1)
-              ),
+              low_2qb: parseFloat((pickRanks[x].rank.low_2qb * 1.2).toFixed(1)),
+              high: parseFloat((pickRanks[x].rank.high * 1.2).toFixed(1)),
+              high_2qb: parseFloat((pickRanks[x].rank.high_2qb * 1.2).toFixed(1)),
               stdev: pickRanks[x].rank.stdev,
               stdev_2qb: pickRanks[x].rank.stdev_2qb,
-              value: parseInt(
-                (pickRanks[x].rank.value * 0.8).toFixed(0)
-              ),
-              value_2qb: parseInt(
-                (pickRanks[x].rank.value_2qb * 0.8).toFixed(0)
-              ),
+              value: parseInt((pickRanks[x].rank.value * 0.8).toFixed(0)),
+              value_2qb: parseInt((pickRanks[x].rank.value_2qb * 0.8).toFixed(0)),
             },
           });
           x = i === 0 ? 52 + inc : foo + (i - 1) * 16;
@@ -1322,27 +1246,15 @@ function updateRanks() {
             rank: {
               time: new Date(),
               adp: parseFloat((pickRanks[x].rank.adp * 1.2).toFixed(1)),
-              adp_2qb: parseFloat(
-                (pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)
-              ),
+              adp_2qb: parseFloat((pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)),
               low: parseFloat((pickRanks[x].rank.low * 1.2).toFixed(1)),
-              low_2qb: parseFloat(
-                (pickRanks[x].rank.low_2qb * 1.2).toFixed(1)
-              ),
-              high: parseFloat(
-                (pickRanks[x].rank.high * 1.2).toFixed(1)
-              ),
-              high_2qb: parseFloat(
-                (pickRanks[x].rank.high_2qb * 1.2).toFixed(1)
-              ),
+              low_2qb: parseFloat((pickRanks[x].rank.low_2qb * 1.2).toFixed(1)),
+              high: parseFloat((pickRanks[x].rank.high * 1.2).toFixed(1)),
+              high_2qb: parseFloat((pickRanks[x].rank.high_2qb * 1.2).toFixed(1)),
               stdev: pickRanks[x].rank.stdev,
               stdev_2qb: pickRanks[x].rank.stdev_2qb,
-              value: parseInt(
-                (pickRanks[x].rank.value * 0.8).toFixed(0)
-              ),
-              value_2qb: parseInt(
-                (pickRanks[x].rank.value_2qb * 0.8).toFixed(0)
-              ),
+              value: parseInt((pickRanks[x].rank.value * 0.8).toFixed(0)),
+              value_2qb: parseInt((pickRanks[x].rank.value_2qb * 0.8).toFixed(0)),
             },
           });
           x = i === 0 ? 56 + inc : foo + (i - 1) * 16;
@@ -1354,27 +1266,15 @@ function updateRanks() {
             rank: {
               time: new Date(),
               adp: parseFloat((pickRanks[x].rank.adp * 1.2).toFixed(1)),
-              adp_2qb: parseFloat(
-                (pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)
-              ),
+              adp_2qb: parseFloat((pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)),
               low: parseFloat((pickRanks[x].rank.low * 1.2).toFixed(1)),
-              low_2qb: parseFloat(
-                (pickRanks[x].rank.low_2qb * 1.2).toFixed(1)
-              ),
-              high: parseFloat(
-                (pickRanks[x].rank.high * 1.2).toFixed(1)
-              ),
-              high_2qb: parseFloat(
-                (pickRanks[x].rank.high_2qb * 1.2).toFixed(1)
-              ),
+              low_2qb: parseFloat((pickRanks[x].rank.low_2qb * 1.2).toFixed(1)),
+              high: parseFloat((pickRanks[x].rank.high * 1.2).toFixed(1)),
+              high_2qb: parseFloat((pickRanks[x].rank.high_2qb * 1.2).toFixed(1)),
               stdev: pickRanks[x].rank.stdev,
               stdev_2qb: pickRanks[x].rank.stdev_2qb,
-              value: parseInt(
-                (pickRanks[x].rank.value * 0.8).toFixed(0)
-              ),
-              value_2qb: parseInt(
-                (pickRanks[x].rank.value_2qb * 0.8).toFixed(0)
-              ),
+              value: parseInt((pickRanks[x].rank.value * 0.8).toFixed(0)),
+              value_2qb: parseInt((pickRanks[x].rank.value_2qb * 0.8).toFixed(0)),
             },
           });
           x = i === 0 ? 60 + inc : foo + (i - 1) * 16;
@@ -1386,27 +1286,15 @@ function updateRanks() {
             rank: {
               time: new Date(),
               adp: parseFloat((pickRanks[x].rank.adp * 1.2).toFixed(1)),
-              adp_2qb: parseFloat(
-                (pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)
-              ),
+              adp_2qb: parseFloat((pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)),
               low: parseFloat((pickRanks[x].rank.low * 1.2).toFixed(1)),
-              low_2qb: parseFloat(
-                (pickRanks[x].rank.low_2qb * 1.2).toFixed(1)
-              ),
-              high: parseFloat(
-                (pickRanks[x].rank.high * 1.2).toFixed(1)
-              ),
-              high_2qb: parseFloat(
-                (pickRanks[x].rank.high_2qb * 1.2).toFixed(1)
-              ),
+              low_2qb: parseFloat((pickRanks[x].rank.low_2qb * 1.2).toFixed(1)),
+              high: parseFloat((pickRanks[x].rank.high * 1.2).toFixed(1)),
+              high_2qb: parseFloat((pickRanks[x].rank.high_2qb * 1.2).toFixed(1)),
               stdev: pickRanks[x].rank.stdev,
               stdev_2qb: pickRanks[x].rank.stdev_2qb,
-              value: parseInt(
-                (pickRanks[x].rank.value * 0.8).toFixed(0)
-              ),
-              value_2qb: parseInt(
-                (pickRanks[x].rank.value_2qb * 0.8).toFixed(0)
-              ),
+              value: parseInt((pickRanks[x].rank.value * 0.8).toFixed(0)),
+              value_2qb: parseInt((pickRanks[x].rank.value_2qb * 0.8).toFixed(0)),
             },
           });
           inc++;
@@ -1419,27 +1307,15 @@ function updateRanks() {
             rank: {
               time: new Date(),
               adp: parseFloat((pickRanks[x].rank.adp * 1.2).toFixed(1)),
-              adp_2qb: parseFloat(
-                (pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)
-              ),
+              adp_2qb: parseFloat((pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)),
               low: parseFloat((pickRanks[x].rank.low * 1.2).toFixed(1)),
-              low_2qb: parseFloat(
-                (pickRanks[x].rank.low_2qb * 1.2).toFixed(1)
-              ),
-              high: parseFloat(
-                (pickRanks[x].rank.high * 1.2).toFixed(1)
-              ),
-              high_2qb: parseFloat(
-                (pickRanks[x].rank.high_2qb * 1.2).toFixed(1)
-              ),
+              low_2qb: parseFloat((pickRanks[x].rank.low_2qb * 1.2).toFixed(1)),
+              high: parseFloat((pickRanks[x].rank.high * 1.2).toFixed(1)),
+              high_2qb: parseFloat((pickRanks[x].rank.high_2qb * 1.2).toFixed(1)),
               stdev: pickRanks[x].rank.stdev,
               stdev_2qb: pickRanks[x].rank.stdev_2qb,
-              value: parseInt(
-                (pickRanks[x].rank.value * 0.8).toFixed(0)
-              ),
-              value_2qb: parseInt(
-                (pickRanks[x].rank.value_2qb * 0.8).toFixed(0)
-              ),
+              value: parseInt((pickRanks[x].rank.value * 0.8).toFixed(0)),
+              value_2qb: parseInt((pickRanks[x].rank.value_2qb * 0.8).toFixed(0)),
             },
           });
           x = i === 0 ? 52 + inc : foo + (i - 1) * 16;
@@ -1451,27 +1327,15 @@ function updateRanks() {
             rank: {
               time: new Date(),
               adp: parseFloat((pickRanks[x].rank.adp * 1.2).toFixed(1)),
-              adp_2qb: parseFloat(
-                (pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)
-              ),
+              adp_2qb: parseFloat((pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)),
               low: parseFloat((pickRanks[x].rank.low * 1.2).toFixed(1)),
-              low_2qb: parseFloat(
-                (pickRanks[x].rank.low_2qb * 1.2).toFixed(1)
-              ),
-              high: parseFloat(
-                (pickRanks[x].rank.high * 1.2).toFixed(1)
-              ),
-              high_2qb: parseFloat(
-                (pickRanks[x].rank.high_2qb * 1.2).toFixed(1)
-              ),
+              low_2qb: parseFloat((pickRanks[x].rank.low_2qb * 1.2).toFixed(1)),
+              high: parseFloat((pickRanks[x].rank.high * 1.2).toFixed(1)),
+              high_2qb: parseFloat((pickRanks[x].rank.high_2qb * 1.2).toFixed(1)),
               stdev: pickRanks[x].rank.stdev,
               stdev_2qb: pickRanks[x].rank.stdev_2qb,
-              value: parseInt(
-                (pickRanks[x].rank.value * 0.8).toFixed(0)
-              ),
-              value_2qb: parseInt(
-                (pickRanks[x].rank.value_2qb * 0.8).toFixed(0)
-              ),
+              value: parseInt((pickRanks[x].rank.value * 0.8).toFixed(0)),
+              value_2qb: parseInt((pickRanks[x].rank.value_2qb * 0.8).toFixed(0)),
             },
           });
           x = i === 0 ? 56 + inc : foo + (i - 1) * 16;
@@ -1483,27 +1347,15 @@ function updateRanks() {
             rank: {
               time: new Date(),
               adp: parseFloat((pickRanks[x].rank.adp * 1.2).toFixed(1)),
-              adp_2qb: parseFloat(
-                (pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)
-              ),
+              adp_2qb: parseFloat((pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)),
               low: parseFloat((pickRanks[x].rank.low * 1.2).toFixed(1)),
-              low_2qb: parseFloat(
-                (pickRanks[x].rank.low_2qb * 1.2).toFixed(1)
-              ),
-              high: parseFloat(
-                (pickRanks[x].rank.high * 1.2).toFixed(1)
-              ),
-              high_2qb: parseFloat(
-                (pickRanks[x].rank.high_2qb * 1.2).toFixed(1)
-              ),
+              low_2qb: parseFloat((pickRanks[x].rank.low_2qb * 1.2).toFixed(1)),
+              high: parseFloat((pickRanks[x].rank.high * 1.2).toFixed(1)),
+              high_2qb: parseFloat((pickRanks[x].rank.high_2qb * 1.2).toFixed(1)),
               stdev: pickRanks[x].rank.stdev,
               stdev_2qb: pickRanks[x].rank.stdev_2qb,
-              value: parseInt(
-                (pickRanks[x].rank.value * 0.8).toFixed(0)
-              ),
-              value_2qb: parseInt(
-                (pickRanks[x].rank.value_2qb * 0.8).toFixed(0)
-              ),
+              value: parseInt((pickRanks[x].rank.value * 0.8).toFixed(0)),
+              value_2qb: parseInt((pickRanks[x].rank.value_2qb * 0.8).toFixed(0)),
             },
           });
           x = i === 0 ? 60 + inc : foo + (i - 1) * 16;
@@ -1515,27 +1367,15 @@ function updateRanks() {
             rank: {
               time: new Date(),
               adp: parseFloat((pickRanks[x].rank.adp * 1.2).toFixed(1)),
-              adp_2qb: parseFloat(
-                (pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)
-              ),
+              adp_2qb: parseFloat((pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)),
               low: parseFloat((pickRanks[x].rank.low * 1.2).toFixed(1)),
-              low_2qb: parseFloat(
-                (pickRanks[x].rank.low_2qb * 1.2).toFixed(1)
-              ),
-              high: parseFloat(
-                (pickRanks[x].rank.high * 1.2).toFixed(1)
-              ),
-              high_2qb: parseFloat(
-                (pickRanks[x].rank.high_2qb * 1.2).toFixed(1)
-              ),
+              low_2qb: parseFloat((pickRanks[x].rank.low_2qb * 1.2).toFixed(1)),
+              high: parseFloat((pickRanks[x].rank.high * 1.2).toFixed(1)),
+              high_2qb: parseFloat((pickRanks[x].rank.high_2qb * 1.2).toFixed(1)),
               stdev: pickRanks[x].rank.stdev,
               stdev_2qb: pickRanks[x].rank.stdev_2qb,
-              value: parseInt(
-                (pickRanks[x].rank.value * 0.8).toFixed(0)
-              ),
-              value_2qb: parseInt(
-                (pickRanks[x].rank.value_2qb * 0.8).toFixed(0)
-              ),
+              value: parseInt((pickRanks[x].rank.value * 0.8).toFixed(0)),
+              value_2qb: parseInt((pickRanks[x].rank.value_2qb * 0.8).toFixed(0)),
             },
           });
           inc++;
@@ -1548,27 +1388,15 @@ function updateRanks() {
             rank: {
               time: new Date(),
               adp: parseFloat((pickRanks[x].rank.adp * 1.2).toFixed(1)),
-              adp_2qb: parseFloat(
-                (pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)
-              ),
+              adp_2qb: parseFloat((pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)),
               low: parseFloat((pickRanks[x].rank.low * 1.2).toFixed(1)),
-              low_2qb: parseFloat(
-                (pickRanks[x].rank.low_2qb * 1.2).toFixed(1)
-              ),
-              high: parseFloat(
-                (pickRanks[x].rank.high * 1.2).toFixed(1)
-              ),
-              high_2qb: parseFloat(
-                (pickRanks[x].rank.high_2qb * 1.2).toFixed(1)
-              ),
+              low_2qb: parseFloat((pickRanks[x].rank.low_2qb * 1.2).toFixed(1)),
+              high: parseFloat((pickRanks[x].rank.high * 1.2).toFixed(1)),
+              high_2qb: parseFloat((pickRanks[x].rank.high_2qb * 1.2).toFixed(1)),
               stdev: pickRanks[x].rank.stdev,
               stdev_2qb: pickRanks[x].rank.stdev_2qb,
-              value: parseInt(
-                (pickRanks[x].rank.value * 0.8).toFixed(0)
-              ),
-              value_2qb: parseInt(
-                (pickRanks[x].rank.value_2qb * 0.8).toFixed(0)
-              ),
+              value: parseInt((pickRanks[x].rank.value * 0.8).toFixed(0)),
+              value_2qb: parseInt((pickRanks[x].rank.value_2qb * 0.8).toFixed(0)),
             },
           });
           x = i === 0 ? 52 + inc : foo + (i - 1) * 16;
@@ -1580,27 +1408,15 @@ function updateRanks() {
             rank: {
               time: new Date(),
               adp: parseFloat((pickRanks[x].rank.adp * 1.2).toFixed(1)),
-              adp_2qb: parseFloat(
-                (pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)
-              ),
+              adp_2qb: parseFloat((pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)),
               low: parseFloat((pickRanks[x].rank.low * 1.2).toFixed(1)),
-              low_2qb: parseFloat(
-                (pickRanks[x].rank.low_2qb * 1.2).toFixed(1)
-              ),
-              high: parseFloat(
-                (pickRanks[x].rank.high * 1.2).toFixed(1)
-              ),
-              high_2qb: parseFloat(
-                (pickRanks[x].rank.high_2qb * 1.2).toFixed(1)
-              ),
+              low_2qb: parseFloat((pickRanks[x].rank.low_2qb * 1.2).toFixed(1)),
+              high: parseFloat((pickRanks[x].rank.high * 1.2).toFixed(1)),
+              high_2qb: parseFloat((pickRanks[x].rank.high_2qb * 1.2).toFixed(1)),
               stdev: pickRanks[x].rank.stdev,
               stdev_2qb: pickRanks[x].rank.stdev_2qb,
-              value: parseInt(
-                (pickRanks[x].rank.value * 0.8).toFixed(0)
-              ),
-              value_2qb: parseInt(
-                (pickRanks[x].rank.value_2qb * 0.8).toFixed(0)
-              ),
+              value: parseInt((pickRanks[x].rank.value * 0.8).toFixed(0)),
+              value_2qb: parseInt((pickRanks[x].rank.value_2qb * 0.8).toFixed(0)),
             },
           });
           x = i === 0 ? 56 + inc : foo + (i - 1) * 16;
@@ -1612,27 +1428,15 @@ function updateRanks() {
             rank: {
               time: new Date(),
               adp: parseFloat((pickRanks[x].rank.adp * 1.2).toFixed(1)),
-              adp_2qb: parseFloat(
-                (pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)
-              ),
+              adp_2qb: parseFloat((pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)),
               low: parseFloat((pickRanks[x].rank.low * 1.2).toFixed(1)),
-              low_2qb: parseFloat(
-                (pickRanks[x].rank.low_2qb * 1.2).toFixed(1)
-              ),
-              high: parseFloat(
-                (pickRanks[x].rank.high * 1.2).toFixed(1)
-              ),
-              high_2qb: parseFloat(
-                (pickRanks[x].rank.high_2qb * 1.2).toFixed(1)
-              ),
+              low_2qb: parseFloat((pickRanks[x].rank.low_2qb * 1.2).toFixed(1)),
+              high: parseFloat((pickRanks[x].rank.high * 1.2).toFixed(1)),
+              high_2qb: parseFloat((pickRanks[x].rank.high_2qb * 1.2).toFixed(1)),
               stdev: pickRanks[x].rank.stdev,
               stdev_2qb: pickRanks[x].rank.stdev_2qb,
-              value: parseInt(
-                (pickRanks[x].rank.value * 0.8).toFixed(0)
-              ),
-              value_2qb: parseInt(
-                (pickRanks[x].rank.value_2qb * 0.8).toFixed(0)
-              ),
+              value: parseInt((pickRanks[x].rank.value * 0.8).toFixed(0)),
+              value_2qb: parseInt((pickRanks[x].rank.value_2qb * 0.8).toFixed(0)),
             },
           });
           x = i === 0 ? 60 + inc : foo + (i - 1) * 16;
@@ -1644,31 +1448,19 @@ function updateRanks() {
             rank: {
               time: new Date(),
               adp: parseFloat((pickRanks[x].rank.adp * 1.2).toFixed(1)),
-              adp_2qb: parseFloat(
-                (pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)
-              ),
+              adp_2qb: parseFloat((pickRanks[x].rank.adp_2qb * 1.2).toFixed(1)),
               low: parseFloat((pickRanks[x].rank.low * 1.2).toFixed(1)),
-              low_2qb: parseFloat(
-                (pickRanks[x].rank.low_2qb * 1.2).toFixed(1)
-              ),
-              high: parseFloat(
-                (pickRanks[x].rank.high * 1.2).toFixed(1)
-              ),
-              high_2qb: parseFloat(
-                (pickRanks[x].rank.high_2qb * 1.2).toFixed(1)
-              ),
+              low_2qb: parseFloat((pickRanks[x].rank.low_2qb * 1.2).toFixed(1)),
+              high: parseFloat((pickRanks[x].rank.high * 1.2).toFixed(1)),
+              high_2qb: parseFloat((pickRanks[x].rank.high_2qb * 1.2).toFixed(1)),
               stdev: pickRanks[x].rank.stdev,
               stdev_2qb: pickRanks[x].rank.stdev_2qb,
-              value: parseInt(
-                (pickRanks[x].rank.value * 0.8).toFixed(0)
-              ),
-              value_2qb: parseInt(
-                (pickRanks[x].rank.value_2qb * 0.8).toFixed(0)
-              ),
+              value: parseInt((pickRanks[x].rank.value * 0.8).toFixed(0)),
+              value_2qb: parseInt((pickRanks[x].rank.value_2qb * 0.8).toFixed(0)),
             },
           });
         });
-        result.forEach(p => {
+        result.forEach((p) => {
           if (p.position !== 'PICK') {
             const match = playersFinal.find(x => x.name.toLowerCase() === p.name.toLowerCase());
             const newPprRank = new Rank({
@@ -1693,12 +1485,12 @@ function updateRanks() {
               value: match ? match.value_2qb : 0,
               aav: match ? match.aav_2qb : 0,
             });
-            newPprRank.save(function (err, thingy) {
-              if (err) return console.error(err)
+            newPprRank.save((err, thingy) => {
+              if (err) return console.error(err);
               // return console.log(thingy);
             });
-            newSuperRank.save(function (err, thingy) {
-              if (err) return console.error(err)
+            newSuperRank.save((err, thingy) => {
+              if (err) return console.error(err);
               // return console.log(thingy);
             });
           } else {
@@ -1724,12 +1516,12 @@ function updateRanks() {
                 stdev: match ? match.rank.stdev_2qb : 0,
                 value: match ? match.rank.value_2qb : 0,
               });
-              newPprRank.save(function(err, thingy) {
+              newPprRank.save((err, thingy) => {
                 if (err) return console.error(err);
                 // return console.log(thingy);
               });
-              newSuperRank.save(function (err, thingy) {
-                if (err) return console.error(err)
+              newSuperRank.save((err, thingy) => {
+                if (err) return console.error(err);
                 // return console.log(thingy);
               });
             }

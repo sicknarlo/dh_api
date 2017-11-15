@@ -8,16 +8,10 @@ function formatNameForMatch(name, pos) {
 }
 
 function cleanNameNewPlayer(name) {
-  const newName = `${name.split(', ')[1]} ${name.split(', ')[0]}`
-  if (name === 'Mitchell Trubisky') return 'Mitch Trubisky';
-  if (name === 'Robert Kelley') return 'Rob Kelley';
-  return name.replace(' Jr.', '').replace(/\./g, '').replace(/\\/g, '');
-}
-
-function cleanName(name) {
-  if (name === 'Mitchell Trubisky') return 'Mitch Trubisky';
-  if (name === 'Robert Kelley') return 'Rob Kelley';
-  return name.replace(' Jr.', '').replace(/\./g, '');
+  const newName = `${name.split(', ')[1]} ${name.split(', ')[0]}`;
+  if (newName === 'Mitchell Trubisky') return 'Mitch Trubisky';
+  if (newName === 'Robert Kelley') return 'Rob Kelley';
+  return newName.replace(' Jr.', '').replace(/\./g, '').replace(/\\/g, '');
 }
 
 // const supportedPositions = ['CB', 'DE', 'DT', 'LB', 'PK', 'PN', 'QB', 'RB', 'S', 'TE', 'WR'];

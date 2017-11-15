@@ -91,6 +91,9 @@ const PlayerSchema = new mongoose.Schema({
   },
   updatedAt: {
     type: Date
+  },
+  ranks: {
+    type: Object,
   }
 });
 

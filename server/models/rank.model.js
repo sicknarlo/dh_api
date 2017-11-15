@@ -66,7 +66,6 @@ RankSchema.statics = {
       .limit(+limit)
       .exec()
       .then((Ranks) => {
-        console.log(Ranks);
         if (Ranks) {
           return Ranks;
         }

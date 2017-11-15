@@ -8,6 +8,7 @@ import app from './config/express';
 
 import updateRanks from './server/cron/updateRanks';
 import updatePlayers from './server/cron/updatePlayers';
+import updateLatestStats from './server/cron/updateLatestStats';
 
 const debug = require('debug')('express-mongoose-es6-rest-api:index');
 
@@ -19,6 +20,7 @@ mongoose.Promise = Promise;
 
 // updateRanks();
 // updatePlayers();
+updateLatestStats();
 
 // const playerCron = new cron.CronJob({
 //   // cronTime: '00 30 2 * * *',
